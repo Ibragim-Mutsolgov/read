@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -24,14 +25,17 @@ public class ReadController {
 
     @GetMapping("/{count}")
     public Data getData(@PathVariable Long count, HttpServletRequest request) throws ExecutionException, InterruptedException {
+        long unixTimestamp = Instant.now().toEpochMilli();
         log.info("IP: " + request.getRemoteAddr());
         var dataConsumer = new StringValueConsumer(configuration, value -> {}, count);
         List<String> list = dataConsumer.startSending();
 
+        long unixTimestamp2 = Instant.now().toEpochMilli();
+        long result = unixTimestamp2 -  unixTimestamp;
         return new Data(
-                1,
-                2,
-                3,
+                unixTimestamp,
+                unixTimestamp2,
+                result,
                 list
         );
     }

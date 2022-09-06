@@ -8,11 +8,11 @@ import java.util.List;
 @AllArgsConstructor
 public class Data {
 
-    private int time_get;
+    private long time_get;
 
-    private int time_send;
+    private long time_send;
 
-    private int time_work;
+    private long time_work;
 
     private List<String> list;
 }
