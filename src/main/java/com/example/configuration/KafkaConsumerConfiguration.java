@@ -1,6 +1,8 @@
 package com.example.configuration;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,8 +13,11 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 
+import java.net.InetAddress;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 @Configuration
 public class KafkaConsumerConfiguration {
@@ -20,25 +25,36 @@ public class KafkaConsumerConfiguration {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    private KafkaConsumer<String, String> kafkaConsumer;
+
+    @Bean
     public Map<String, Object> consumerConfig() {
-        Map<String, Object> props = new HashMap<>();
+        Map<String, Object> props = new HashMap();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "groupId");
+        props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, makeGroupInstanceIdConfig());
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
+        kafkaConsumer = new KafkaConsumer<>(props);
+        kafkaConsumer.subscribe(Collections.singletonList("Data_Delivery"));
+
         return props;
     }
 
-    @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfig());
+    public KafkaConsumer<String, String> getConsumer() {
+        return kafkaConsumer;
     }
 
-    @Bean
-    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, String>> factory(
-            ConsumerFactory<String, String> consumerFactory
-    ) {
-        ConcurrentKafkaListenerContainerFactory factory = new ConcurrentKafkaListenerContainerFactory();
-        factory.setConsumerFactory(consumerFactory);
-        return factory;
+    public String makeGroupInstanceIdConfig()  {
+        try {
+            var hostName = InetAddress.getLocalHost().getHostName();
+            return String.join("-", "groupId", hostName, String.valueOf(new Random().nextInt(100_999_999)));
+        } catch(Exception ex) {
+            return ex.getMessage();
+        }
     }
 }

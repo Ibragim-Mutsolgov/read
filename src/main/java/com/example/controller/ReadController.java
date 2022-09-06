@@ -1,6 +1,7 @@
 package com.example.controller;
 
 import com.example.configuration.KafkaConsumerConfiguration;
+import com.example.configuration.StringValueConsumer;
 import com.example.model.Data;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,13 +37,13 @@ import java.util.stream.StreamSupport;
 @RequestMapping("/read/data")
 public class ReadController {
 
-    private KafkaTemplate<String, String> kafkaTemplate;
-
     private KafkaConsumerConfiguration configuration;
 
     @GetMapping("/{count}")
     public Data getData(@PathVariable Long count, HttpServletRequest request) {
         log.info("IP: " + request.getRemoteAddr());
+        var dataConsumer = new StringValueConsumer(configuration, value -> {});
+        dataConsumer.startSending();
 
         return new Data(
                 1,
