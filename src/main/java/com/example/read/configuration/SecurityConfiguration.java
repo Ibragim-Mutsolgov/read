@@ -1,4 +1,4 @@
-package com.example.security;
+package com.example.read.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,13 +1,14 @@
-package com.example.configuration;
+package com.example.read.configuration;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -25,24 +26,31 @@ public class StringValueConsumer {
 
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 
-    public void startSending() {
-        //executor.scheduleAtFixedRate(this::poll, 0, MAX_POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        executor.schedule(this::poll, 0, TimeUnit.MILLISECONDS);
+    private Long count;
+
+    public List<String> startSending() throws ExecutionException, InterruptedException {
+        return executor.schedule(this::poll, 0, TimeUnit.MILLISECONDS).get();
     }
 
-    private void poll() {
+    private List<String> poll() {
         ConsumerRecords<String, String> records = configuration.getConsumer().poll(timeout);
         if(records.count() > 0)
         log.info("polled records.counter:{}", records.count());
+        List<String> list = new ArrayList<>();
+        Long i = 0L;
         for (ConsumerRecord<String, String> kafkaRecord : records) {
+            if (i.equals(count)) {
+                break;
+            }
             try {
-                var key = kafkaRecord.key();
                 var value = kafkaRecord.value();
-                log.info("key:{}, value:{}, record:{}", key, value, kafkaRecord);
                 dataConsumer.accept(value);
+                list.add(value);
             } catch (Exception ex) {
                 log.error("can't parse record:{}", kafkaRecord, ex);
             }
+            i = i + 1;
         }
+        return list;
     }
 }
